@@ -1,0 +1,44 @@
+app:
+  name: "simpleserver"
+  serviceAccount:
+    enabled: false
+  configMap:
+    enabled: true
+    variables:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+  deployment:
+    enabled: true
+    image: ""
+    version: ""
+    imagePullPolicy: "Always"
+    initialReplicas: 1
+    minReplicas: 1
+    maxReplicas: 6
+    targetCpuUtilization: 70
+    maxSkew: 1
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "100m"
+      limits:
+        memory: "2Gi"
+        cpu: "1800m"
+    ports:
+      applicationPort: 8080
+    probes:
+      readiness:
+        port: 8080
+        path: "/actuator/health"
+        initialDelaySeconds: 120
+      liveness:
+        port: 8080
+        path: "/actuator/health"
+        initialDelaySeconds: 60
+  service:
+    enabled: true
+  ingress:
+    enabled: false
+    scheme: "internal"
+    groupName: "simpleserver"
+    # certificateArn: ""
+    fqdn: "simpleserver.example.com"

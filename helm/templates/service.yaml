@@ -1,0 +1,19 @@
+{{- if .Values.app.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+  annotations:
+    deployTime: {{ now | date "20060102150405" | quote }}
+spec:
+  selector:
+    app: {{ .Values.app.name }}
+  type: NodePort
+  ports:
+    - name: http
+      port: {{ .Values.app.deployment.ports.applicationPort }}
+      protocol: TCP
+      targetPort: {{ .Values.app.deployment.ports.applicationPort }}
+{{- end }}

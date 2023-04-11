@@ -1,0 +1,84 @@
+{{- if .Values.app.deployment.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+  annotations:
+    deployTime: {{ now | date "20060102150405" | quote }}
+spec:
+  replicas: {{ .Values.app.deployment.initialReplicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+      annotations:
+        deployTime: {{ now | date "20060102150405" | quote }}
+    spec:
+{{- if .Values.app.serviceAccount.enabled }}
+      serviceAccountName: {{ .Values.app.name }}
+{{- end }}
+      containers:
+        - name: {{ .Values.app.name }}
+          image: {{ printf "%s:%s" .Values.app.deployment.image .Values.app.deployment.version }}
+          imagePullPolicy: {{ .Values.app.deployment.imagePullPolicy | default "Always" }}
+          resources:
+            requests:
+              memory: {{ .Values.app.deployment.resources.requests.memory }}
+              cpu: {{ .Values.app.deployment.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.app.deployment.resources.limits.memory }}
+              cpu: {{ .Values.app.deployment.resources.limits.cpu }}
+          ports:
+            - containerPort: {{ .Values.app.deployment.ports.applicationPort }}
+              name: http
+{{- if .Values.app.configMap.enabled }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.app.name }}
+{{- end }}
+          readinessProbe:
+            initialDelaySeconds: {{ .Values.app.deployment.probes.readiness.initialDelaySeconds | default 120 }}
+            httpGet:
+              scheme: "HTTP"
+              path: {{ .Values.app.deployment.probes.readiness.path }}
+              port: {{ .Values.app.deployment.probes.readiness.port }}
+          livenessProbe:
+            initialDelaySeconds: {{ .Values.app.deployment.probes.liveness.initialDelaySeconds | default 60 }}
+            httpGet:
+              scheme: "HTTP"
+              path: {{ .Values.app.deployment.probes.liveness.path }}
+              port: {{ .Values.app.deployment.probes.liveness.port }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.app.deployment.maxSkew | default 1 }}
+          topologyKey: "kubernetes.io/hostname"
+          whenUnsatisfiable: "ScheduleAnyway"
+          labelSelector:
+            matchLabels:
+              app: {{ .Values.app.name }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: "topology.kubernetes.io/zone"
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - {{ .Values.app.name }}
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: "kubernetes.io/hostname"
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - {{ .Values.app.name }}
+{{- end }}

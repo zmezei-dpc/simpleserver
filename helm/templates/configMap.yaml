@@ -1,0 +1,14 @@
+{{- if .Values.app.configMap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+  annotations:
+    deployTime: {{ now | date "20060102150405" | quote }}
+data:
+  {{- range $key, $val := .Values.app.configMap.variables }}
+  {{ upper $key }}: {{ $val | quote }}
+  {{- end }}
+{{- end }}

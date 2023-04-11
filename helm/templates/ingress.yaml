@@ -1,0 +1,33 @@
+{{- if .Values.app.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+  annotations:
+    deployTime: {{ now | date "20060102150405" | quote }}
+    alb.ingress.kubernetes.io/scheme: {{ .Values.app.ingress.scheme }}
+    alb.ingress.kubernetes.io/group.name: {{ .Values.app.ingress.groupName }}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+{{- if .Values.app.ingress.certificateArn }}
+    alb.ingress.kubernetes.io/certificate-arn: {{ .Values.app.ingress.certificateArn }}
+{{- end }}
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/backend-protocol: "HTTP"
+    alb.ingress.kubernetes.io/success-codes: "200-499"
+spec:
+  ingressClassName: "alb"
+  rules:
+    - host: {{ .Values.app.ingress.fqdn }}
+      http:
+        paths:
+          - pathType: "ImplementationSpecific"
+            path: "/*"
+            backend:
+              service:
+                name: {{ .Values.app.name }}
+                port:
+                  number: {{ .Values.app.deployment.ports.applicationPort }}
+{{- end }}
